@@ -115,6 +115,9 @@ export default function Home() {
         newSections[sectionIndex].items.pop();
         setSections(newSections);
       }
+      finally {
+        setNewItemTexts("")
+      }
     }
   };
   
