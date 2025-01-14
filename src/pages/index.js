@@ -191,9 +191,9 @@ export default function Home() {
   useEffect(() => {
     const auth = sessionStorage.getItem("isAuthenticated");
     if (auth === "true") {
-      setInit(false);
       setIsAuthenticated(true);
     }
+    setInit(false);
   }, []);
 
   const handleLogin = (e) => {
