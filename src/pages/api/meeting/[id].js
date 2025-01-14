@@ -1,40 +1,55 @@
-import { get, set } from '@vercel/edge-config';
+import pool from "../db";
 
 export default async function handler(req, res) {
   const { id } = req.query;
+
   try {
     switch (req.method) {
       case "GET": {
-        try {
-          const sections = await get('sections') || [];
+        const [rows] = await pool.query(
+          "SELECT sections FROM meetings WHERE id = ?",
+          [id]
+        );
+        if (rows.length > 0) {
+          // Handle sections parsing
+          const sections =
+            typeof rows[0].sections === "string"
+              ? JSON.parse(rows[0].sections || "[]")
+              : rows[0].sections || [];
           res.json({ sections });
-        } catch (getError) {
-          console.error("Error getting sections:", getError);
-          res.status(500).json({ message: "Error retrieving sections", details: getError.message });
+        } else {
+          res.status(404).json({ message: "Meeting not found" });
         }
         break;
       }
+
       case "PUT": {
         const { sections } = req.body;
         if (!Array.isArray(sections)) {
           res.status(400).json({ message: "Invalid data: sections must be an array" });
           return;
         }
-        try {
-          await set('sections', sections);
+
+        const sectionsJson = JSON.stringify(sections);
+        const [result] = await pool.query(
+          "UPDATE meetings SET sections = ? WHERE id = ?",
+          [sectionsJson, id]
+        );
+
+        if (result.affectedRows > 0) {
           res.json({ success: true });
-        } catch (setError) {
-          console.error("Error setting sections:", setError);
-          res.status(500).json({ message: "Error updating sections", details: setError.message });
+        } else {
+          res.status(404).json({ message: "Meeting not found" });
         }
         break;
       }
+
       default:
         res.setHeader("Allow", ["GET", "PUT"]);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
-    console.error("Unexpected API Error:", error);
-    res.status(500).json({ message: "Unexpected internal server error", details: error.message });
+    console.error("API Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }

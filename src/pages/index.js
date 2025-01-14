@@ -154,11 +154,12 @@ export default function Home() {
   const [error, setError] = useState("");
   const correctPassword = "fewoplan2025";
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [init, setInit] = useState(true)
 
   useEffect(() => {
-    // Check sessionStorage after component mounts
     const auth = sessionStorage.getItem("isAuthenticated");
     if (auth === "true") {
+      setInit(false);
       setIsAuthenticated(true);
     }
   }, []);
@@ -166,6 +167,7 @@ export default function Home() {
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === correctPassword) {
+      setInit(false);
       setIsAuthenticated(true);
       sessionStorage.setItem("isAuthenticated", "true");
       setError("");
@@ -174,6 +176,15 @@ export default function Home() {
       setPassword("");
     }
   };
+
+  if (init && !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white">
+        Loading...
+      </div>
+    );
+  }
+
 
   if (!isAuthenticated) {
     return (
