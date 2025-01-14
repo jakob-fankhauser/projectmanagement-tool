@@ -153,12 +153,15 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const correctPassword = "fewoplan2025";
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("isAuthenticated") === "true";
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check sessionStorage after component mounts
+    const auth = sessionStorage.getItem("isAuthenticated");
+    if (auth === "true") {
+      setIsAuthenticated(true);
     }
-    return false;
-  });
+  }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
