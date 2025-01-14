@@ -150,74 +150,89 @@ export default function Home() {
     await saveToDb(newSections);
   };
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-const [password, setPassword] = useState("");
-const [error, setError] = useState("");
-const correctPassword = "fewoplan2025";
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const correctPassword = "fewoplan2025";
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("isAuthenticated") === "true";
+    }
+    return false;
+  });
 
-const handleLogin = (e) => {
-  e.preventDefault();
-  if (password === correctPassword) {
-    setIsAuthenticated(true);
-    setError("");
-  } else {
-    setError("Falsches Passwort");
-    setPassword("");
-  }
-};
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === correctPassword) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem("isAuthenticated", "true");
+      setError("");
+    } else {
+      setError("Incorrect password");
+      setPassword("");
+    }
+  };
 
-if (!isAuthenticated) {
-  return (
-    <div className="relative min-h-screen bg-black text-white overflow-hidden">
-      <div
-        style={{
-          background: "radial-gradient(closest-side, rgba(71, 103, 186, 0.333), rgba(71, 103, 186, 0))",
-          width: "800px",
-          height: "800px",
-          position: "fixed",
-          top: "-300px",
-          right: "-300px",
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          background: "radial-gradient(closest-side, rgba(205, 74, 1, 0.333), rgba(205, 74, 1, 0))",
-          width: "800px",
-          height: "800px",
-          position: "fixed",
-          bottom: "-300px",
-          left: "-300px",
-          zIndex: 0,
-        }}
-      />
-      <div className="fixed top-[40px] right-[40px]">
-        <img src="/arkom-logo.svg" alt="Arkom Digital" className="w-[100px]" />
-      </div>
-      <div className="relative z-10 min-h-screen flex items-center justify-center">
-        <div className="w-full max-w-md">
-          <form onSubmit={handleLogin} className="bg-[#1a1a1a] rounded-lg border border-[#333333] p-8">
-            <h2 className="text-2xl font-bold mb-6">Passwort eingeben</h2>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded bg-[#222222] border border-[#333333] text-white focus:border-[#4767ba] outline-none mb-4"
-              placeholder="Passwort"
-            />
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-            <button 
-              type="submit"
-              className="w-full p-3 bg-[#374f8b]  text-white rounded hover:bg-[#4767ba] transition-colors"
+  if (!isAuthenticated) {
+    return (
+      <div className="relative min-h-screen bg-black text-white overflow-hidden">
+        <div
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(71, 103, 186, 0.333), rgba(71, 103, 186, 0))",
+            width: "800px",
+            height: "800px",
+            position: "fixed",
+            top: "-300px",
+            right: "-300px",
+            zIndex: 0,
+          }}
+        />
+        <div
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(205, 74, 1, 0.333), rgba(205, 74, 1, 0))",
+            width: "800px",
+            height: "800px",
+            position: "fixed",
+            bottom: "-300px",
+            left: "-300px",
+            zIndex: 0,
+          }}
+        />
+        <div className="fixed top-[40px] right-[40px]">
+          <img
+            src="/arkom-logo.svg"
+            alt="Arkom Digital"
+            className="w-[100px]"
+          />
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <form
+              onSubmit={handleLogin}
+              className="bg-[#1a1a1a] rounded-lg border border-[#333333] p-8"
             >
-              Login
-            </button>
-          </form>
+              <h2 className="text-2xl font-bold mb-6">Passwort eingeben</h2>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 rounded bg-[#222222] border border-[#333333] text-white focus:border-[#4767ba] outline-none mb-4"
+                placeholder="Passwort"
+              />
+              {error && <p className="text-red-500 mb-4">{error}</p>}
+              <button
+                type="submit"
+                className="w-full p-3 bg-[#374f8b]  text-white rounded hover:bg-[#4767ba] transition-colors"
+              >
+                Login
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   if (loading) {
     return (
