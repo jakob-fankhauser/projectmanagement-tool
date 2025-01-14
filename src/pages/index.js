@@ -104,6 +104,7 @@ export default function Home() {
 
   const handleAddItem = async (sectionIndex) => {
     const text = newItemTexts[sectionIndex] || "";
+    setNewItemTexts("")
     if (text.trim()) {
       const newSections = [...sections];
       newSections[sectionIndex].items.push(text.trim());
@@ -114,9 +115,6 @@ export default function Home() {
       } catch (error) {
         newSections[sectionIndex].items.pop();
         setSections(newSections);
-      }
-      finally {
-        setNewItemTexts("")
       }
     }
   };
