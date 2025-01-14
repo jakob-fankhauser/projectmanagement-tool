@@ -108,46 +108,77 @@ export default function Home() {
       const newSections = [...sections];
       newSections[sectionIndex].items.push(text.trim());
       setSections(newSections);
-      setNewItemTexts((prev) => ({ ...prev, [sectionIndex]: "" }));
-      await saveToDb(newSections);
+  
+      try {
+        await saveToDb(newSections);
+      } catch (error) {
+        newSections[sectionIndex].items.pop();
+        setSections(newSections);
+      }
     }
   };
-
+  
   const handleDeleteItem = async (sectionIndex, itemIndex) => {
     const newSections = [...sections];
-    newSections[sectionIndex].items.splice(itemIndex, 1);
+    const removedItem = newSections[sectionIndex].items.splice(itemIndex, 1);
     setSections(newSections);
-    await saveToDb(newSections);
+  
+    try {
+      await saveToDb(newSections);
+    } catch (error) {
+      newSections[sectionIndex].items.splice(itemIndex, 0, ...removedItem);
+      setSections(newSections);
+    }
   };
-
+  
   const handleEditItem = (sectionIndex, itemIndex, newText) => {
     const newSections = [...sections];
     newSections[sectionIndex].items[itemIndex] = newText;
     setSections(newSections);
   };
-
+  
   const handleFinishEditing = async (sectionIndex, itemIndex) => {
     setEditingItem(null);
     await saveToDb(sections);
   };
-
+  
   const handleAddSection = async () => {
     const newSections = [...sections, { title: "Neue Sektion", items: [] }];
     setSections(newSections);
-    await saveToDb(newSections);
+  
+    try {
+      await saveToDb(newSections);
+    } catch (error) {
+      newSections.pop();
+      setSections(newSections);
+    }
   };
-
+  
   const handleEditSection = async (index, newTitle) => {
     const newSections = [...sections];
+    const originalTitle = newSections[index].title;
     newSections[index].title = newTitle;
     setSections(newSections);
-    await saveToDb(newSections);
+  
+    try {
+      await saveToDb(newSections);
+    } catch (error) {
+      newSections[index].title = originalTitle;
+      setSections(newSections);
+    }
   };
-
+  
   const handleDeleteSection = async (index) => {
     const newSections = sections.filter((_, i) => i !== index);
+    const deletedSection = sections[index];
     setSections(newSections);
-    await saveToDb(newSections);
+  
+    try {
+      await saveToDb(newSections);
+    } catch (error) {
+      newSections.splice(index, 0, deletedSection);
+      setSections(newSections);
+    }
   };
 
   const [password, setPassword] = useState("");
