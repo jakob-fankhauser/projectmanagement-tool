@@ -1,18 +1,67 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Progress } from "./components/Progress";
+
+
+const Dashboard = ({ sections }) => {
+  const calculateOverallProgress = () => {
+    if (sections.length === 0) return 0;
+    
+    let totalCompleted = 0;
+    let totalItems = 0;
+    
+    sections.forEach(section => {
+      section.items.forEach(item => {
+        if (item.completed) totalCompleted++;
+        totalItems++;
+      });
+    });
+    
+    return totalItems === 0 ? 0 : Math.round((totalCompleted / totalItems) * 100);
+  };
+
+  const totalTasks = sections.reduce((acc, section) => acc + section.items.length, 0);
+  const completedTasks = sections.reduce((acc, section) => 
+    acc + section.items.filter(item => item.completed).length, 0);
+
+  return (
+    <div className="bg-[#1a1a1a] rounded-lg border border-[#333333] p-6 mb-8">
+      <h2 className="text-xl font-bold mb-4">Projekt Übersicht</h2>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="p-4 bg-[#222222] rounded-lg">
+          <div className="text-gray-400 mb-1">Projektfortschritt</div>
+          <div className="text-2xl font-bold">{calculateOverallProgress()}%</div>
+        </div>
+        <div className="p-4 bg-[#222222] rounded-lg">
+          <div className="text-gray-400 mb-1">Gesamtaufgaben</div>
+          <div className="text-2xl font-bold">{totalTasks}</div>
+        </div>
+        <div className="p-4 bg-[#222222] rounded-lg">
+          <div className="text-gray-400 mb-1">Erledigte Aufgaben</div>
+          <div className="text-2xl font-bold">{completedTasks}</div>
+        </div>
+      </div>
+      <Progress value={calculateOverallProgress()} className="h-2" />
+    </div>
+  );
+};
+
 
 const Section = ({
   section,
   sectionIndex,
   onEditSection,
   onDeleteSection,
+  onToggleItem,
   children,
 }) => {
-  const [contextMenu, setContextMenu] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-  });
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
+  
+  const calculateProgress = () => {
+    if (section.items.length === 0) return 0;
+    const completed = section.items.filter(item => item.completed).length;
+    return Math.round((completed / section.items.length) * 100);
+  };
 
   useEffect(() => {
     const hideMenu = () => setContextMenu({ visible: false, x: 0, y: 0 });
@@ -22,28 +71,28 @@ const Section = ({
 
   const handleContextMenu = (e) => {
     e.preventDefault();
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-    });
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
   };
 
+  const progress = calculateProgress();
+  
   return (
     <>
       <div className="bg-[#1a1a1a] rounded-lg border border-[#333333] mb-6 overflow-hidden">
         <div className="border-b border-[#333333]">
           <div className="px-6 py-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4 mb-2">
               <input
                 type="text"
                 value={section.title}
                 onChange={(e) => onEditSection(sectionIndex, e.target.value)}
-                className="w-full rounded bg-[#1a1a1a] text-white border-none outline-none"
+                className="flex-1 rounded bg-[#1a1a1a] text-white border-none outline-none"
                 placeholder="Section Title"
                 onContextMenu={handleContextMenu}
               />
+              <div className="text-gray-400">{progress}%</div>
             </div>
+            <Progress value={progress} className="h-2" />
           </div>
         </div>
         {children}
@@ -73,6 +122,7 @@ const Section = ({
   );
 };
 
+
 export default function Home() {
   const [sections, setSections] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
@@ -86,7 +136,15 @@ export default function Home() {
   const fetchData = async () => {
     try {
       const response = await axios.get("/api/meeting/1");
-      setSections(response.data.sections);
+      const transformedSections = response.data.sections.map(section => ({
+        ...section,
+        items: section.items.map(item => 
+          typeof item === 'string' 
+            ? { text: item, completed: false }
+            : item
+        )
+      }));
+      setSections(transformedSections);
       setLoading(false);
     } catch (error) {
       console.error("Error loading:", error);
@@ -104,11 +162,17 @@ export default function Home() {
 
   const handleAddItem = async (sectionIndex) => {
     const text = newItemTexts[sectionIndex] || "";
-    setNewItemTexts("")
     if (text.trim()) {
       const newSections = [...sections];
-      newSections[sectionIndex].items.push(text.trim());
+      newSections[sectionIndex].items.push({
+        text: text.trim(),
+        completed: false
+      });
       setSections(newSections);
+      setNewItemTexts(prev => ({
+        ...prev,
+        [sectionIndex]: ""
+      }));
   
       try {
         await saveToDb(newSections);
@@ -116,6 +180,20 @@ export default function Home() {
         newSections[sectionIndex].items.pop();
         setSections(newSections);
       }
+    }
+  };
+
+  const handleToggleItem = async (sectionIndex, itemIndex) => {
+    const newSections = [...sections];
+    const item = newSections[sectionIndex].items[itemIndex];
+    item.completed = !item.completed;
+    setSections(newSections);
+
+    try {
+      await saveToDb(newSections);
+    } catch (error) {
+      item.completed = !item.completed;
+      setSections(newSections);
     }
   };
   
@@ -134,9 +212,13 @@ export default function Home() {
   
   const handleEditItem = (sectionIndex, itemIndex, newText) => {
     const newSections = [...sections];
-    newSections[sectionIndex].items[itemIndex] = newText;
+    newSections[sectionIndex].items[itemIndex] = {
+      ...newSections[sectionIndex].items[itemIndex],
+      text: newText
+    };
     setSections(newSections);
   };
+  
   
   const handleFinishEditing = async (sectionIndex, itemIndex) => {
     setEditingItem(null);
@@ -337,6 +419,11 @@ export default function Home() {
           </div>
         </div>
 
+ 
+       
+
+        <Dashboard sections={sections} />
+
         <div className="mb-4 flex justify-end">
           <button
             onClick={handleAddSection}
@@ -353,6 +440,7 @@ export default function Home() {
             sectionIndex={sectionIndex}
             onEditSection={handleEditSection}
             onDeleteSection={handleDeleteSection}
+            onToggleItem={handleToggleItem}
           >
             <div className="px-6 pt-4 pb-6">
               <ul className="space-y-1 mb-4">
@@ -361,24 +449,29 @@ export default function Home() {
                     key={itemIndex}
                     className="flex items-center gap-2 group rounded-md"
                   >
-                    <div className="w-2 h-2 rounded-full bg-white shrink-0" />
+                    <button
+                      onClick={() => handleToggleItem(sectionIndex, itemIndex)}
+                      className={`w-4 h-4 rounded border ${
+                        item.completed
+                          ? "bg-[#4767ba] border-[#4767ba]"
+                          : "border-white"
+                      } flex items-center justify-center`}
+                    >
+                      {item.completed && (
+                        <span className="text-white text-xs">✓</span>
+                      )}
+                    </button>
 
                     {editingItem === `${sectionIndex}-${itemIndex}` ? (
                       <div className="flex-1 flex items-center min-h-[24px]">
                         <input
                           type="text"
                           className="w-full rounded bg-[#222222] border border-[#333333] text-white focus:border-[#4767ba] outline-none p-1"
-                          value={item}
+                          value={item.text}
                           onChange={(e) =>
-                            handleEditItem(
-                              sectionIndex,
-                              itemIndex,
-                              e.target.value
-                            )
+                            handleEditItem(sectionIndex, itemIndex, e.target.value)
                           }
-                          onBlur={() =>
-                            handleFinishEditing(sectionIndex, itemIndex)
-                          }
+                          onBlur={() => handleFinishEditing(sectionIndex, itemIndex)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               handleFinishEditing(sectionIndex, itemIndex);
@@ -390,18 +483,16 @@ export default function Home() {
                     ) : (
                       <>
                         <span
-                          className="flex-1 text-gray-300 border border-[#1a1a1a] cursor-text min-h-[24px] flex items-center p-1"
-                          onClick={() =>
-                            setEditingItem(`${sectionIndex}-${itemIndex}`)
-                          }
+                          className={`flex-1 border border-[#1a1a1a] cursor-text min-h-[24px] flex items-center p-1 ${
+                            item.completed ? "text-gray-500 line-through" : "text-gray-300"
+                          }`}
+                          onClick={() => setEditingItem(`${sectionIndex}-${itemIndex}`)}
                         >
-                          {item}
+                          {item.text}
                         </span>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() =>
-                              handleDeleteItem(sectionIndex, itemIndex)
-                            }
+                            onClick={() => handleDeleteItem(sectionIndex, itemIndex)}
                             className="p-1 text-gray-400 hover:text-[#cd4a01] transition-colors"
                           >
                             ✖
@@ -424,9 +515,7 @@ export default function Home() {
                       [sectionIndex]: e.target.value,
                     }))
                   }
-                  onKeyUp={(e) =>
-                    e.key === "Enter" && handleAddItem(sectionIndex)
-                  }
+                  onKeyUp={(e) => e.key === "Enter" && handleAddItem(sectionIndex)}
                 />
                 <button
                   onClick={() => handleAddItem(sectionIndex)}
