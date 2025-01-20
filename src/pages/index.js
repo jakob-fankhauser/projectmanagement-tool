@@ -1,28 +1,35 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Progress } from "./components/Progress";
-
+import { Progress } from "@/components/Progress";
 
 const Dashboard = ({ sections }) => {
   const calculateOverallProgress = () => {
     if (sections.length === 0) return 0;
-    
+
     let totalCompleted = 0;
     let totalItems = 0;
-    
-    sections.forEach(section => {
-      section.items.forEach(item => {
+
+    sections.forEach((section) => {
+      section.items.forEach((item) => {
         if (item.completed) totalCompleted++;
         totalItems++;
       });
     });
-    
-    return totalItems === 0 ? 0 : Math.round((totalCompleted / totalItems) * 100);
+
+    return totalItems === 0
+      ? 0
+      : Math.round((totalCompleted / totalItems) * 100);
   };
 
-  const totalTasks = sections.reduce((acc, section) => acc + section.items.length, 0);
-  const completedTasks = sections.reduce((acc, section) => 
-    acc + section.items.filter(item => item.completed).length, 0);
+  const totalTasks = sections.reduce(
+    (acc, section) => acc + section.items.length,
+    0
+  );
+  const completedTasks = sections.reduce(
+    (acc, section) =>
+      acc + section.items.filter((item) => item.completed).length,
+    0
+  );
 
   return (
     <div className="bg-[#1a1a1a] rounded-lg border border-[#333333] p-6 mb-8">
@@ -30,7 +37,9 @@ const Dashboard = ({ sections }) => {
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="p-4 bg-[#222222] rounded-lg">
           <div className="text-gray-400 mb-1">Projektfortschritt</div>
-          <div className="text-2xl font-bold">{calculateOverallProgress()}%</div>
+          <div className="text-2xl font-bold">
+            {calculateOverallProgress()}%
+          </div>
         </div>
         <div className="p-4 bg-[#222222] rounded-lg">
           <div className="text-gray-400 mb-1">Gesamtaufgaben</div>
@@ -46,7 +55,6 @@ const Dashboard = ({ sections }) => {
   );
 };
 
-
 const Section = ({
   section,
   sectionIndex,
@@ -55,11 +63,15 @@ const Section = ({
   onToggleItem,
   children,
 }) => {
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
-  
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+  });
+
   const calculateProgress = () => {
     if (section.items.length === 0) return 0;
-    const completed = section.items.filter(item => item.completed).length;
+    const completed = section.items.filter((item) => item.completed).length;
     return Math.round((completed / section.items.length) * 100);
   };
 
@@ -75,7 +87,7 @@ const Section = ({
   };
 
   const progress = calculateProgress();
-  
+
   return (
     <>
       <div className="bg-[#1a1a1a] rounded-lg border border-[#333333] mb-6 overflow-hidden">
@@ -122,7 +134,6 @@ const Section = ({
   );
 };
 
-
 export default function Home() {
   const [sections, setSections] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
@@ -136,13 +147,11 @@ export default function Home() {
   const fetchData = async () => {
     try {
       const response = await axios.get("/api/meeting/1");
-      const transformedSections = response.data.sections.map(section => ({
+      const transformedSections = response.data.sections.map((section) => ({
         ...section,
-        items: section.items.map(item => 
-          typeof item === 'string' 
-            ? { text: item, completed: false }
-            : item
-        )
+        items: section.items.map((item) =>
+          typeof item === "string" ? { text: item, completed: false } : item
+        ),
       }));
       setSections(transformedSections);
       setLoading(false);
@@ -166,14 +175,14 @@ export default function Home() {
       const newSections = [...sections];
       newSections[sectionIndex].items.push({
         text: text.trim(),
-        completed: false
+        completed: false,
       });
       setSections(newSections);
-      setNewItemTexts(prev => ({
+      setNewItemTexts((prev) => ({
         ...prev,
-        [sectionIndex]: ""
+        [sectionIndex]: "",
       }));
-  
+
       try {
         await saveToDb(newSections);
       } catch (error) {
@@ -196,12 +205,12 @@ export default function Home() {
       setSections(newSections);
     }
   };
-  
+
   const handleDeleteItem = async (sectionIndex, itemIndex) => {
     const newSections = [...sections];
     const removedItem = newSections[sectionIndex].items.splice(itemIndex, 1);
     setSections(newSections);
-  
+
     try {
       await saveToDb(newSections);
     } catch (error) {
@@ -209,26 +218,25 @@ export default function Home() {
       setSections(newSections);
     }
   };
-  
+
   const handleEditItem = (sectionIndex, itemIndex, newText) => {
     const newSections = [...sections];
     newSections[sectionIndex].items[itemIndex] = {
       ...newSections[sectionIndex].items[itemIndex],
-      text: newText
+      text: newText,
     };
     setSections(newSections);
   };
-  
-  
+
   const handleFinishEditing = async (sectionIndex, itemIndex) => {
     setEditingItem(null);
     await saveToDb(sections);
   };
-  
+
   const handleAddSection = async () => {
     const newSections = [...sections, { title: "Neue Sektion", items: [] }];
     setSections(newSections);
-  
+
     try {
       await saveToDb(newSections);
     } catch (error) {
@@ -236,13 +244,13 @@ export default function Home() {
       setSections(newSections);
     }
   };
-  
+
   const handleEditSection = async (index, newTitle) => {
     const newSections = [...sections];
     const originalTitle = newSections[index].title;
     newSections[index].title = newTitle;
     setSections(newSections);
-  
+
     try {
       await saveToDb(newSections);
     } catch (error) {
@@ -250,12 +258,12 @@ export default function Home() {
       setSections(newSections);
     }
   };
-  
+
   const handleDeleteSection = async (index) => {
     const newSections = sections.filter((_, i) => i !== index);
     const deletedSection = sections[index];
     setSections(newSections);
-  
+
     try {
       await saveToDb(newSections);
     } catch (error) {
@@ -268,7 +276,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const correctPassword = "fewoplan2025";
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [init, setInit] = useState(true)
+  const [init, setInit] = useState(true);
 
   useEffect(() => {
     const auth = sessionStorage.getItem("isAuthenticated");
@@ -298,7 +306,6 @@ export default function Home() {
       </div>
     );
   }
-
 
   if (!isAuthenticated) {
     return (
@@ -419,9 +426,6 @@ export default function Home() {
           </div>
         </div>
 
- 
-       
-
         <Dashboard sections={sections} />
 
         <div className="mb-4 flex justify-end">
@@ -469,9 +473,15 @@ export default function Home() {
                           className="w-full rounded bg-[#222222] border border-[#333333] text-white focus:border-[#4767ba] outline-none p-1"
                           value={item.text}
                           onChange={(e) =>
-                            handleEditItem(sectionIndex, itemIndex, e.target.value)
+                            handleEditItem(
+                              sectionIndex,
+                              itemIndex,
+                              e.target.value
+                            )
                           }
-                          onBlur={() => handleFinishEditing(sectionIndex, itemIndex)}
+                          onBlur={() =>
+                            handleFinishEditing(sectionIndex, itemIndex)
+                          }
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               handleFinishEditing(sectionIndex, itemIndex);
@@ -484,15 +494,21 @@ export default function Home() {
                       <>
                         <span
                           className={`flex-1 border border-[#1a1a1a] cursor-text min-h-[24px] flex items-center p-1 ${
-                            item.completed ? "text-gray-500 line-through" : "text-gray-300"
+                            item.completed
+                              ? "text-gray-500 line-through"
+                              : "text-gray-300"
                           }`}
-                          onClick={() => setEditingItem(`${sectionIndex}-${itemIndex}`)}
+                          onClick={() =>
+                            setEditingItem(`${sectionIndex}-${itemIndex}`)
+                          }
                         >
                           {item.text}
                         </span>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleDeleteItem(sectionIndex, itemIndex)}
+                            onClick={() =>
+                              handleDeleteItem(sectionIndex, itemIndex)
+                            }
                             className="p-1 text-gray-400 hover:text-[#cd4a01] transition-colors"
                           >
                             ✖
@@ -515,7 +531,9 @@ export default function Home() {
                       [sectionIndex]: e.target.value,
                     }))
                   }
-                  onKeyUp={(e) => e.key === "Enter" && handleAddItem(sectionIndex)}
+                  onKeyUp={(e) =>
+                    e.key === "Enter" && handleAddItem(sectionIndex)
+                  }
                 />
                 <button
                   onClick={() => handleAddItem(sectionIndex)}
